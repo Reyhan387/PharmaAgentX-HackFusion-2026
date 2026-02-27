@@ -91,6 +91,21 @@ def execute_mitigation_if_safe(medicine_id: int):
             current_multiplier=multiplier
         )
 
+        # -----------------------------------------------
+        # STEP 46 — Deterministic Confidence Scoring (observational only)
+        # -----------------------------------------------
+        from backend.app.services.confidence_service import ConfidenceScoringService
+
+        current_mode = "REVIEW" if reason == "REVIEW_MODE_ACTIVE" else "AUTO"
+
+        confidence_score = ConfidenceScoringService.calculate(
+            db=db,
+            risk_score=risk_score,
+            drift_flags=drift_flags,
+            governance_mode=current_mode,
+            adaptive_multiplier=multiplier
+        )
+
         # ---------------- REVIEW MODE ----------------
         if reason == "REVIEW_MODE_ACTIVE":
 
