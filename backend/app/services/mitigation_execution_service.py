@@ -79,6 +79,18 @@ def execute_mitigation_if_safe(medicine_id: int):
         multiplier = adaptive_data.get("multiplier", 1.0)
         final_quantity = int(base_quantity * multiplier)
 
+        # -----------------------------------------------
+        # STEP 45 — Deterministic Drift Detection (observational only)
+        # Inline import required to prevent circular import risk.
+        # -----------------------------------------------
+        from backend.app.services.drift_detection_service import DriftDetectionService
+
+        drift_flags = DriftDetectionService.evaluate(
+            db=db,
+            current_risk=risk_score,
+            current_multiplier=multiplier
+        )
+
         # ---------------- REVIEW MODE ----------------
         if reason == "REVIEW_MODE_ACTIVE":
 
