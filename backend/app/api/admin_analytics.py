@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 from backend.app.services.admin_analytics_service import get_admin_dashboard_stats
 from backend.app.services.proactive_refill_scanner import run_proactive_refill_scan
+from backend.app.services.observability_service import ObservabilityService
+from backend.app.services.audit_service import create_audit_log
 from backend.app.core.security import admin_required
-from backend.app.core.database import SessionLocal
+from backend.app.core.database import SessionLocal, get_db
 from backend.app.models.refill_alert import RefillAlert
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -51,3 +54,38 @@ def get_refill_alerts(user=Depends(admin_required)):
 
     finally:
         db.close()
+
+
+# =====================================================
+# STEP 48 — GET SYSTEM METRICS — READ ONLY
+# =====================================================
+
+@router.get("/system-metrics")
+def get_system_metrics(
+    admin=Depends(admin_required),
+    db: Session = Depends(get_db)
+):
+    """
+    Read-only system health metrics endpoint.
+    Protected by admin authentication.
+    Returns aggregated governance and observability metrics.
+    """
+
+    metrics = ObservabilityService.system_metrics(db)
+
+    # Audit log for observability access tracking — append-only
+    create_audit_log(
+        db=db,
+        event_type="OBSERVABILITY_CHECK",
+        actor="admin",
+        mode_at_time=metrics.get("current_mode", "UNKNOWN"),
+        decision="metrics_viewed",
+        risk_score=None,
+        reference_id=None,
+        reference_table=None,
+    )
+
+    return {
+        "status": "ok",
+        "metrics": metrics
+    }
