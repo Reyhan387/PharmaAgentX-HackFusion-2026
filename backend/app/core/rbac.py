@@ -5,7 +5,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.app.models.audit_log import AuditLog
+from ..models.audit_log import AuditLog
 
 
 # =====================================================
