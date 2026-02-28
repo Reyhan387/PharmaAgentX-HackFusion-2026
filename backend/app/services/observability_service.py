@@ -3,7 +3,6 @@
 # Read-only metrics aggregation — does NOT change system behavior.
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from backend.app.models.audit_log import AuditLog
 from backend.app.models.system_config import SystemConfig
