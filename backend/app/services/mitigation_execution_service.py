@@ -106,8 +106,52 @@ def execute_mitigation_if_safe(medicine_id: int):
             adaptive_multiplier=multiplier
         )
 
-        # ---------------- REVIEW MODE ----------------
-        if reason == "REVIEW_MODE_ACTIVE":
+        # -----------------------------------------------
+        # STEP 47 — Ethical Safety Enforcement Layer
+        # Escalates governance mode if confidence or drift
+        # thresholds are breached. Deterministic rule-based.
+        # -----------------------------------------------
+        from backend.app.services.ethical_safety_service import EthicalSafetyService
+
+        final_mode = EthicalSafetyService.evaluate(
+            db=db,
+            confidence_score=confidence_score,
+            drift_flags=drift_flags,
+            current_mode=current_mode
+        )
+
+        # -----------------------------------------------
+        # ETHICAL ENFORCEMENT: if mode was escalated to SAFE,
+        # block execution immediately
+        # -----------------------------------------------
+        if final_mode == "SAFE" and current_mode != "SAFE":
+
+            create_audit_log(
+                db=db,
+                event_type="SAFE_BLOCKED",
+                actor="system",
+                mode_at_time="SAFE",
+                decision="blocked",
+                risk_score=risk_score,
+                reference_id=medicine_id,
+                reference_table="medicines",
+            )
+
+            _log_execution(
+                db,
+                status="BLOCKED_BY_ETHICS",
+                message="Ethical safety enforcement escalated mode to SAFE"
+            )
+
+            return {
+                "status": "blocked",
+                "reason": "Ethical safety enforcement — mode escalated to SAFE"
+            }
+
+        # -----------------------------------------------
+        # REVIEW MODE (original or ethically escalated)
+        # -----------------------------------------------
+        if final_mode == "REVIEW" or reason == "REVIEW_MODE_ACTIVE":
 
             review_id = _create_review_record(
                 db=db,
@@ -121,7 +165,7 @@ def execute_mitigation_if_safe(medicine_id: int):
                 db=db,
                 event_type="REVIEW_CREATED",
                 actor="system",
-                mode_at_time="REVIEW",
+                mode_at_time=final_mode,
                 decision="pending",
                 risk_score=risk_score,
                 reference_id=review_id,
