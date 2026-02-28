@@ -17,7 +17,6 @@ from .system_governor_service import is_execution_allowed
 # STEP 44 — Structured Audit
 from backend.app.services.audit_service import create_audit_log
 
-
 SAFE_AUTO_THRESHOLD = 80
 
 
@@ -263,7 +262,6 @@ def execute_mitigation_from_payload(payload: dict):
             risk_score=payload.get("risk_score", 0)
         )
 
-        # 🔥 ADD THIS — Audit execution in REVIEW flow
         if result.get("status") == "executed":
             create_audit_log(
                 db=db,
