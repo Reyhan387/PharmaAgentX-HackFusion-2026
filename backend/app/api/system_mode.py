@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from ..core.database import get_db
 from ..core.security import admin_required
+from ..core.rbac import RBACService
 from ..services.system_governor_service import update_mode
 
 router = APIRouter(prefix="/admin/system", tags=["System Control"])
@@ -19,6 +20,8 @@ def change_system_mode(
     admin=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
+    RBACService.require_role(admin, ["admin"], db)
+
     config = update_mode(
         db=db,
         new_mode=data.mode,

@@ -10,6 +10,9 @@ from backend.app.models.refill_alert import RefillAlert
 from backend.app.services.observability_service import ObservabilityService
 from backend.app.services.audit_service import create_audit_log
 
+# ✅ STEP 49 — RBAC
+from backend.app.core.rbac import RBACService
+
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
@@ -72,6 +75,8 @@ def get_system_metrics(
     Protected by admin authentication.
     Returns aggregated governance and observability metrics.
     """
+
+    RBACService.require_role(admin, ["admin"], db)
 
     metrics = ObservabilityService.system_metrics(db)
 
