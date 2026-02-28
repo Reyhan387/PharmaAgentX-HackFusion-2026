@@ -106,6 +106,40 @@ def execute_mitigation_if_safe(medicine_id: int):
             adaptive_multiplier=multiplier
         )
 
+        # -----------------------------------------------
+        # STEP 47 — Ethical Safety Enforcement (governance escalation)
+        # -----------------------------------------------
+        from backend.app.services.ethical_safety_service import EthicalSafetyService
+
+        final_mode = EthicalSafetyService.evaluate(
+            db=db,
+            confidence_score=confidence_score,
+            drift_flags=drift_flags,
+            current_mode=current_mode
+        )
+
+        # If ethical layer escalated to SAFE, block execution immediately
+        if final_mode == "SAFE" and current_mode != "SAFE":
+            from backend.app.services.audit_service import create_audit_log as _audit
+            _audit(
+                db=db,
+                event_type="ETHICAL_BLOCKED",
+                actor="system",
+                mode_at_time="SAFE",
+                decision="blocked",
+                risk_score=risk_score,
+                reference_id=None,
+                reference_table=None,
+            )
+            return {
+                "status": "blocked",
+                "reason": "Ethical safety enforcement — system escalated to SAFE mode"
+            }
+
+        # If ethical layer escalated AUTO → REVIEW, force the review path
+        if final_mode == "REVIEW" and reason != "REVIEW_MODE_ACTIVE":
+            reason = "REVIEW_MODE_ACTIVE"
+
         # ---------------- REVIEW MODE ----------------
         if reason == "REVIEW_MODE_ACTIVE":
 
